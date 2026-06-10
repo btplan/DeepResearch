@@ -4,12 +4,25 @@ Text-to-Speech module using volcengine TTS API.
 
 import json
 import logging
+import os
 import uuid
 from typing import Any, Dict, Optional
 
+from dotenv import load_dotenv
 import requests
 
+load_dotenv()
+
 logger = logging.getLogger(__name__)
+
+
+def _env_or_value(value: Optional[str], env_name: str, required: bool = True) -> str:
+    resolved = value or os.getenv(env_name)
+    if resolved:
+        return resolved.strip()
+    if required:
+        raise ValueError(f"Missing required environment variable: {env_name}")
+    return ""
 
 
 class VolcengineTTS:
@@ -19,11 +32,12 @@ class VolcengineTTS:
 
     def __init__(
         self,
-        appid: str,
-        access_token: str,
-        cluster: str = "volcano_tts",
-        voice_type: str = "BV700_V2_streaming",
-        host: str = "openspeech.bytedance.com",
+        appid: Optional[str] = None,
+        access_token: Optional[str] = None,
+        cluster: Optional[str] = None,
+        voice_type: Optional[str] = None,
+        host: Optional[str] = None,
+        api_url: Optional[str] = None,
     ):
         """
         Initialize the volcengine TTS client.
@@ -34,14 +48,15 @@ class VolcengineTTS:
             cluster: TTS cluster name
             voice_type: Voice type to use
             host: API host
+            api_url: Full API URL. If provided, it takes precedence over host.
         """
-        self.appid = appid
-        self.access_token = access_token
-        self.cluster = cluster
-        self.voice_type = voice_type
-        self.host = host
-        self.api_url = f"https://{host}/api/v1/tts"
-        self.header = {"Authorization": f"Bearer;{access_token}"}
+        self.appid = _env_or_value(appid, "VOLCENGINE_TTS_APPID")
+        self.access_token = _env_or_value(access_token, "VOLCENGINE_TTS_ACCESS_TOKEN")
+        self.cluster = _env_or_value(cluster, "VOLCENGINE_TTS_CLUSTER")
+        self.voice_type = _env_or_value(voice_type, "VOLCENGINE_TTS_VOICE_TYPE")
+        self.host = _env_or_value(host, "VOLCENGINE_TTS_HOST", required=False)
+        self.api_url = _env_or_value(api_url, "VOLCENGINE_TTS_API_URL")
+        self.header = {"Authorization": f"Bearer;{self.access_token}"}
 
     def text_to_speech(
         self,

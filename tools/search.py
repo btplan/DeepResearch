@@ -35,6 +35,8 @@ def get_search_config():
 def get_web_search_tool(max_search_results: int):
     # Log the selected search engine
     logger.info(f"Using search engine: {SELECTED_SEARCH_ENGINE}")
+    if not SELECTED_SEARCH_ENGINE:
+        raise ValueError("Missing required environment variable: SEARCH_API")
     
     if SELECTED_SEARCH_ENGINE == SearchEngine.TAVILY.value:
         from langchain_community.tools.tavily_search import TavilySearchResults

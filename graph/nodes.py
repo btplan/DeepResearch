@@ -22,25 +22,12 @@ from utils.json_utils import repair_json_output
 from utils.context_manager import ContextManager
 
 from config import SELECTED_SEARCH_ENGINE, SearchEngine
+from agents.llms import get_llm
 from .types import State
 
 logger = logging.getLogger(__name__)
 
-from langchain_openai import ChatOpenAI
 
-
-base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-api_key = "sk-xx"
-model = "qwen3-max"
-
-# 大模型接口三要素：base_url、api_key、model
-llm = ChatOpenAI(
-    base_url=base_url,
-    api_key=api_key,
-    model=model,
-    temperature=1.2,
-    # presence_penalty=0.5,
-)
 
 
 @tool
@@ -96,7 +83,7 @@ def planner_node(
         return Command(goto="reporter")
 
     full_response = ""
-    response = llm.stream(messages)
+    response = get_llm().stream(messages)
     for chunk in response:
         full_response += chunk.content
     logger.debug(f"Current state messages: {state['messages']}")
@@ -186,7 +173,7 @@ def coordinator_node(
     logger.info("Coordinator talking.")
     configurable = Configuration.from_runnable_config(config)
     messages = apply_prompt_template("coordinator", state)
-    response = llm.bind_tools([handoff_to_planner]).invoke(messages)
+    response = get_llm().bind_tools([handoff_to_planner]).invoke(messages)
     logger.debug(f"Current state messages: {state['messages']}")
 
     goto = "__end__"
@@ -263,7 +250,7 @@ def reporter_node(state: State, config: RunnableConfig):
         )
 
     logger.debug(f"Current invoke messages: {invoke_messages}")
-    response = llm.invoke(invoke_messages)
+    response = get_llm().invoke(invoke_messages)
     response_content = response.content
     logger.info(f"reporter response: {response_content}")
 
